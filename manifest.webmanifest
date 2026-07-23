@@ -1,0 +1,15 @@
+{
+  "name": "E-Ink",
+  "short_name": "E-Ink",
+  "description": "Điều khiển đồng hồ và màn hình E-Ink DLG-CLOCK qua Bluetooth.",
+  "lang": "vi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbfaf5",
+  "theme_color": "#3156d3",
+  "icons": [
+    {"src":"./icons/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
