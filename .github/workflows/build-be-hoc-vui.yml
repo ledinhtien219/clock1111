@@ -1,0 +1,62 @@
+name: Build Be Hoc Vui APK
+
+on:
+  push:
+    branches: [build-be-hoc-vui-1-1-1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 37
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-37" "build-tools;37.0.0" "platform-tools"
+
+      - name: Set up Gradle 9.4.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
+
+      - name: Restore app source
+        shell: bash
+        run: |
+          mkdir -p behocvui
+          cat > /tmp/behocvui.b64 <<'APP_ARCHIVE'
+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[... ELLIPSIZATION ...]= [?2004h[?2004l in tool payload to save tokens
+APP_ARCHIVE
+          base64 -d /tmp/behocvui.b64 > /tmp/behocvui.tar.gz
+          tar -xzf /tmp/behocvui.tar.gz -C behocvui
+
+      - name: Build debug APK
+        working-directory: behocvui
+        run: gradle --no-daemon assembleDebug
+
+      - name: Rename APK
+        run: cp behocvui/app/build/outputs/apk/debug/app-debug.apk BeHocVui-1.1.1.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeHocVui-1.1.1-APK
+          path: BeHocVui-1.1.1.apk
+          if-no-files-found: error
+          retention-days: 7
