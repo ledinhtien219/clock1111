@@ -52,6 +52,17 @@ jobs:
           cd behocvui
           patch -p1 < /tmp/layout-v130.patch
 
+      - name: Fix duplicate annotation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('behocvui/app/src/main/java/com/behocvui/game/KidsGameView.java')
+          s = p.read_text()
+          s = s.replace('    @Override\n    @Override\n    public boolean onTouchEvent', '    @Override\n    public boolean onTouchEvent', 1)
+          p.write_text(s)
+          PY
+
       - name: Build APK
         working-directory: behocvui
         run: gradle --no-daemon assembleDebug
