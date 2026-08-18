@@ -1,4 +1,4 @@
-name: Inspect Be Hoc Vui 1.3 source
+name: Build Be Hoc Vui 1.3.1 APK
 
 on:
   pull_request:
@@ -8,11 +8,34 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - name: Restore source
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Set up Gradle 9.4.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
+
+      - name: Restore 1.3 source
         shell: bash
         run: |
           mkdir -p behocvui
@@ -23,17 +46,185 @@ jobs:
           gzip -dc /tmp/layout-v130.patch.gz > /tmp/layout-v130.patch
           cd behocvui
           patch -p1 < /tmp/layout-v130.patch
-          perl -0pi -e 's/@Override\s*\n\s*@Override/@Override/g' app/src/main/java/com/behocvui/game/KidsGameView.java
-      - name: Collect source
+
+      - name: Apply 1.3.1 UI polish
+        shell: bash
         run: |
-          mkdir inspect
-          cp behocvui/app/src/main/java/com/behocvui/game/KidsGameView.java inspect/
-          cp behocvui/app/src/main/java/com/behocvui/game/QuestionEngine.java inspect/
-          cp behocvui/app/src/main/java/com/behocvui/game/SpeechHelper.java inspect/
-          cp behocvui/app/src/main/java/com/behocvui/game/MainActivity.java inspect/ 2>/dev/null || true
-          cp behocvui/app/build.gradle.kts inspect/
-      - uses: actions/upload-artifact@v4
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          java = Path('behocvui/app/src/main/java/com/behocvui/game/KidsGameView.java')
+          s = java.read_text()
+
+          # Normalize annotation artifacts from the compact source used by the test build.
+          s = s.replace('@Override@Overridepublic boolean onTouchEvent', '@Override\npublic boolean onTouchEvent')
+          s = s.replace('@Overrideprotected void onDraw', '@Override\nprotected void onDraw')
+          s = s.replace('setLayerType(View.LAYER_TYPE_SOFTWARE, null);',
+                        'setLayerType(View.LAYER_TYPE_SOFTWARE, null);setOverScrollMode(View.OVER_SCROLL_NEVER);')
+
+          start = s.index('private void drawHome(Canvas c) {')
+          i = start
+          level = 0
+          end = None
+          while i < len(s):
+              if s[i] == '{':
+                  level += 1
+              elif s[i] == '}':
+                  level -= 1
+                  if level == 0:
+                      end = i + 1
+                      break
+              i += 1
+          if end is None:
+              raise RuntimeError('Could not locate drawHome method end')
+
+          new_home = r'''private void drawHome(Canvas c) {
+              final float w = getWidth();
+              final float h = getHeight();
+              final float pad = dp(18);
+              final float top = dp(12);
+              final int cardColor = darkMode ? DARK_CARD : WHITE;
+              final int softText = darkMode ? 0xFFC9D2E2 : MUTED;
+
+              c.save();
+              c.clipRect(0, 0, w, h);
+
+              drawText(c, "Bé Học Vui", pad, top + dp(30), dp(27), darkMode ? WHITE : INK,
+                      true, Paint.Align.LEFT);
+              drawText(c, "Học một chút • vui thật nhiều", pad, top + dp(51), dp(12.5f), softText,
+                      false, Paint.Align.LEFT);
+
+              RectF starPill = new RectF(w - pad - dp(74), top + dp(1), w - pad, top + dp(39));
+              drawRound(c, starPill, dp(19), darkMode ? 0xFF26344A : 0xFFFFF1C6);
+              drawStar(c, starPill.left + dp(20), starPill.centerY(), dp(10), YELLOW);
+              drawText(c, String.valueOf(stars), starPill.right - dp(24), starPill.centerY() + dp(6),
+                      dp(17), darkMode ? WHITE : INK, true, Paint.Align.CENTER);
+
+              homeHeroRect.set(pad, top + dp(66), w - pad, top + dp(172));
+              drawRound(c, homeHeroRect, dp(26), darkMode ? 0xFF263550 : 0xFFFFE5A8);
+              drawMascot(c, homeHeroRect.left + dp(48), homeHeroRect.centerY() - dp(1), dp(32));
+
+              final float heroTextX = homeHeroRect.left + dp(91);
+              drawFitText(c, "Chào con! Mình cùng học nhé", heroTextX, homeHeroRect.top + dp(30),
+                      dp(17.5f), darkMode ? WHITE : INK, true, Paint.Align.LEFT,
+                      homeHeroRect.right - heroTextX - dp(14));
+              drawText(c, "Chạm vào Mặt Trời để bắt đầu", heroTextX, homeHeroRect.top + dp(51),
+                      dp(11.3f), darkMode ? 0xFFD8E1F0 : 0xFF746749, false, Paint.Align.LEFT);
+
+              final float routeY = homeHeroRect.top + dp(80);
+              final float routeStart = heroTextX + dp(18);
+              drawMiniLesson(c, routeStart, routeY, "A", PURPLE);
+              drawArrow(c, routeStart + dp(23), routeY, routeStart + dp(39), routeY,
+                      darkMode ? 0xFFA9B5C8 : 0xFF9A7B38);
+              drawMiniLesson(c, routeStart + dp(58), routeY, "BA", GREEN);
+              drawArrow(c, routeStart + dp(81), routeY, routeStart + dp(97), routeY,
+                      darkMode ? 0xFFA9B5C8 : 0xFF9A7B38);
+              drawMiniLesson(c, routeStart + dp(116), routeY, "CÁ", ORANGE);
+
+              final float gridTop = homeHeroRect.bottom + dp(12);
+              final float gap = dp(10);
+              final float cardW = (w - pad * 2 - gap) / 2f;
+              final float parentH = dp(46);
+              final float spellH = dp(76);
+              final float parentTop = h - parentH - dp(7);
+              final float spellBottom = parentTop - dp(10);
+              final float spellTop = spellBottom - spellH;
+              final float gridBottom = spellTop - dp(12);
+              float cardH = (gridBottom - gridTop - gap * 2) / 3f;
+              cardH = Math.max(dp(72), Math.min(dp(112), cardH));
+
+              final String[] titles = {"Chữ cái", "Đếm số", "Màu sắc", "Hình khối", "Ghép đôi", "Logic"};
+              final int[] colors = {PURPLE, GREEN, BLUE, ORANGE, PINK, YELLOW};
+
+              for (int iCard = 0; iCard < 6; iCard++) {
+                  int row = iCard / 2;
+                  int col = iCard % 2;
+                  float l = pad + col * (cardW + gap);
+                  float t = gridTop + row * (cardH + gap);
+                  RectF card = homeCards[iCard];
+                  card.set(l, t, l + cardW, t + cardH);
+
+                  paint.setShadowLayer(dp(6), 0, dp(3), darkMode ? 0x25000000 : 0x12000000);
+                  drawRound(c, card, dp(23), cardColor);
+                  paint.clearShadowLayer();
+
+                  float iconSize = Math.min(dp(54), Math.max(dp(42), cardH * 0.48f));
+                  float iconTop = card.top + dp(9);
+                  RectF icon = new RectF(card.centerX() - iconSize / 2f, iconTop,
+                          card.centerX() + iconSize / 2f, iconTop + iconSize);
+                  drawRound(c, icon, dp(17), darkMode ? mixWithWhite(colors[iCard], 0.10f)
+                          : mixWithWhite(colors[iCard], 0.80f));
+                  drawHomeIcon(c, iCard, icon, colors[iCard]);
+
+                  paint.setColor(darkMode ? mixWithWhite(colors[iCard], 0.20f) : colors[iCard]);
+                  c.drawCircle(card.centerX(), icon.bottom + dp(7), dp(2.2f), paint);
+
+                  drawFitText(c, titles[iCard], card.centerX(), card.bottom - dp(13), dp(17.2f),
+                          darkMode ? WHITE : INK, true, Paint.Align.CENTER, card.width() - dp(20));
+              }
+
+              RectF spell = homeCards[6];
+              spell.set(pad, spellTop, w - pad, spellBottom);
+              drawRound(c, spell, dp(24), darkMode ? 0xFF3B2857 : 0xFFEDE3FF);
+
+              RectF spellIcon = new RectF(spell.left + dp(12), spell.top + dp(8),
+                      spell.left + dp(72), spell.bottom - dp(8));
+              drawRound(c, spellIcon, dp(18), PURPLE);
+              drawText(c, "A", spellIcon.centerX(), spellIcon.top + dp(22), dp(19), WHITE,
+                      true, Paint.Align.CENTER);
+              drawText(c, "↓", spellIcon.centerX(), spellIcon.centerY() + dp(5), dp(13), 0xFFE9E2FF,
+                      true, Paint.Align.CENTER);
+              drawText(c, "BA", spellIcon.centerX(), spellIcon.bottom - dp(10), dp(11.5f), WHITE,
+                      true, Paint.Align.CENTER);
+
+              final float spellTextX = spellIcon.right + dp(13);
+              final float spellTextRight = spell.right - dp(54);
+              drawFitText(c, "Bé học đánh vần", spellTextX, spell.top + dp(31), dp(17.5f),
+                      darkMode ? WHITE : INK, true, Paint.Align.LEFT, spellTextRight - spellTextX);
+              drawFitText(c, "Nghe âm • ghép tiếng • dấu thanh", spellTextX, spell.top + dp(53),
+                      dp(10.7f), darkMode ? 0xFFE4D9F5 : 0xFF725D91, false, Paint.Align.LEFT,
+                      spellTextRight - spellTextX);
+              drawPill(c, spell.right - dp(45), spell.centerY() - dp(15), dp(30), dp(30), PURPLE);
+              drawText(c, "›", spell.right - dp(30), spell.centerY() + dp(8), dp(25), WHITE,
+                      true, Paint.Align.CENTER);
+
+              parentRect.set(pad, parentTop, w - pad, parentTop + parentH);
+              drawRound(c, parentRect, dp(20), darkMode ? 0xFF273449 : 0xFFF0E9DE);
+              drawText(c, "Khu vực ba mẹ", parentRect.centerX(), parentRect.centerY() + dp(5),
+                      dp(13.7f), darkMode ? 0xFFE2E8F2 : 0xFF667185, true, Paint.Align.CENTER);
+
+              c.restore();
+          }'''
+
+          s = s[:start] + new_home + s[end:]
+          java.write_text(s)
+
+          main = Path('behocvui/app/src/main/java/com/behocvui/game/MainActivity.java')
+          ms = main.read_text().replace('safeRoot.setClipToPadding(false);', 'safeRoot.setClipToPadding(true);')
+          main.write_text(ms)
+
+          gradle = Path('behocvui/app/build.gradle.kts')
+          gs = gradle.read_text().replace('versionCode = 5', 'versionCode = 6').replace('versionName = "1.3.0"', 'versionName = "1.3.1"')
+          gradle.write_text(gs)
+          PY
+
+      - name: Compile APK
+        working-directory: behocvui
+        run: gradle --no-daemon assembleDebug
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -s behocvui/app/build/outputs/apk/debug/app-debug.apk
+          $ANDROID_HOME/build-tools/36.0.0/aapt dump badging behocvui/app/build/outputs/apk/debug/app-debug.apk | head -n 8
+          cp behocvui/app/build/outputs/apk/debug/app-debug.apk BeHocVui-1.3.1.apk
+          sha256sum BeHocVui-1.3.1.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: BeHocVui-1.3-source-inspect
-          path: inspect
-          retention-days: 1
+          name: BeHocVui-1.3.1-APK
+          path: BeHocVui-1.3.1.apk
+          if-no-files-found: error
+          retention-days: 7
