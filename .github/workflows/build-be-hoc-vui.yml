@@ -1,10 +1,68 @@
-name: Temporary Bé Học Vui build archived
+name: Build Be Hoc Vui 1.3 APK
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  info:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - run: echo "Bé Học Vui 1.2.0 build completed"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Set up Gradle 9.4.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
+
+      - name: Restore base source
+        shell: bash
+        run: |
+          mkdir -p behocvui
+          cat .build/behocvui/part*.b64 > /tmp/behocvui.b64
+          base64 -d /tmp/behocvui.b64 > /tmp/behocvui.tar.gz
+          tar -xzf /tmp/behocvui.tar.gz -C behocvui
+
+      - name: Apply 1.3 patch
+        shell: bash
+        run: |
+          base64 -d .build/layout-v130/layout.patch.gz.b64 > /tmp/layout-v130.patch.gz
+          gzip -dc /tmp/layout-v130.patch.gz > /tmp/layout-v130.patch
+          cd behocvui
+          patch -p1 < /tmp/layout-v130.patch
+
+      - name: Build APK
+        working-directory: behocvui
+        run: gradle --no-daemon assembleDebug
+
+      - name: Rename APK
+        run: cp behocvui/app/build/outputs/apk/debug/app-debug.apk BeHocVui-1.3.0.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeHocVui-1.3.0-APK
+          path: BeHocVui-1.3.0.apk
+          if-no-files-found: error
+          retention-days: 7
