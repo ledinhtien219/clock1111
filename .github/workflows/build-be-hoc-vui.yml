@@ -58,8 +58,10 @@ jobs:
           s = java.read_text()
 
           # Normalize annotation artifacts from the compact source used by the test build.
-          s = s.replace('@Override@Overridepublic boolean onTouchEvent', '@Override\npublic boolean onTouchEvent')
-          s = s.replace('@Overrideprotected void onDraw', '@Override\nprotected void onDraw')
+          s = re.sub(r'@Override\s*@Override', '@Override\n', s)
+          s = re.sub(r'@Override\s*public boolean onTouchEvent', '@Override\npublic boolean onTouchEvent', s)
+          s = re.sub(r'@Override\s*protected void onDraw', '@Override\nprotected void onDraw', s)
+          s = s.replace('@Overrideprotected', '@Override\nprotected')
           s = s.replace('setLayerType(View.LAYER_TYPE_SOFTWARE, null);',
                         'setLayerType(View.LAYER_TYPE_SOFTWARE, null);setOverScrollMode(View.OVER_SCROLL_NEVER);')
 
