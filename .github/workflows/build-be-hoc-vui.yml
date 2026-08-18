@@ -1,13 +1,10 @@
-name: Build Be Hoc Vui APK
+name: Temporary APK build archived
 
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
-  archived:
+  info:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Temporary APK build completed"
+      - run: echo "Build finished"
