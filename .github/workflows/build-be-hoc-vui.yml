@@ -3,6 +3,8 @@ name: Build Be Hoc Vui APK
 on:
   push:
     branches: [build-be-hoc-vui-1-1-1]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -79,8 +81,8 @@ jobs:
             fi
           fi
 
-      - name: Commit build result
-        if: always()
+      - name: Commit build result on branch push
+        if: github.event_name == 'push'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -89,10 +91,11 @@ jobs:
           git commit -m "Build Be Hoc Vui result [skip ci]" || true
           git push origin HEAD:build-be-hoc-vui-1-1-1
 
-      - name: Upload APK artifact
-        if: ${{ hashFiles('build-output/BeHocVui-1.1.1.apk') != '' }}
+      - name: Upload build output
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: BeHocVui-1.1.1-APK
-          path: build-output/BeHocVui-1.1.1.apk
+          name: BeHocVui-1.1.1-build
+          path: build-output/
+          if-no-files-found: error
           retention-days: 7
