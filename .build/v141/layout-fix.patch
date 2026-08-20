@@ -1,0 +1,84 @@
+diff -urN old/app/build.gradle.kts new/app/build.gradle.kts
+--- old/app/build.gradle.kts	2026-08-20 06:17:00.494350949 +0000
++++ new/app/build.gradle.kts	2026-08-20 06:17:00.937048385 +0000
+@@ -10,8 +10,8 @@
+         applicationId = "com.behocvui.game"
+         minSdk = 24
+         targetSdk = 36
+-        versionCode = 7
+-        versionName = "1.4.0"
++        versionCode = 8
++        versionName = "1.4.1"
+     }
+ 
+     buildTypes {
+diff -urN old/app/src/main/java/com/behocvui/game/KidsGameView.java new/app/src/main/java/com/behocvui/game/KidsGameView.java
+--- old/app/src/main/java/com/behocvui/game/KidsGameView.java	2026-08-20 06:17:00.492619368 +0000
++++ new/app/src/main/java/com/behocvui/game/KidsGameView.java	2026-08-20 06:17:00.936892153 +0000
+@@ -50,8 +50,8 @@
+     final float gridTop = homeHeroRect.bottom + dp(9);
+     final float gap = dp(8);
+     final float cardW = (w - pad * 2 - gap) / 2f;
+-    final float parentH = dp(42);
+-    final float bannerH = dp(61);
++    final float parentH = dp(44);
++    final float bannerH = dp(67);
+     final float parentTop = h - parentH - dp(6);
+     final float spellBottom = parentTop - dp(7);
+     final float spellTop = spellBottom - bannerH;
+@@ -86,29 +86,46 @@
+         drawKidSubjectIcon(c, i, card, colors[i]);
+     }
+ 
+-    // Bé học toán - chuẩn bị vào lớp 1.
++    // Bé học toán - chia rõ vùng chữ và vùng minh hoạ để không bao giờ đè nhau.
+     RectF math = homeCards[6];
+     math.set(pad, mathTop, w - pad, mathBottom);
+     drawRound(c, math, dp(22), darkMode ? 0xFF173F3A : 0xFFDDF7E7);
+     stroke.setStrokeWidth(dp(1.2f));
+     stroke.setColor(darkMode ? 0xFF3C8C7A : 0xFFA6E2BE);
+     c.drawRoundRect(math, dp(22), dp(22), stroke);
+-    drawText(c, "Bé học toán", math.left + dp(18), math.top + dp(25), dp(17.5f), darkMode ? WHITE : 0xFF17735C, true, Paint.Align.LEFT);
+-    drawText(c, "Cộng • trừ • dãy số • so sánh", math.left + dp(18), math.top + dp(45), dp(10.3f), darkMode ? 0xFFCAE9E0 : 0xFF4C7E71, false, Paint.Align.LEFT);
+-    drawMathBannerIcon(c, math.right - dp(105), math.centerY(), dp(21));
++
++    final float bannerArrowX = math.right - dp(25);
++    final float bannerVisualRight = math.right - dp(48);
++    final float bannerVisualW = Math.min(dp(104), math.width() * 0.31f);
++    final float bannerVisualLeft = bannerVisualRight - bannerVisualW;
++    final float bannerTextLeft = math.left + dp(18);
++    final float bannerTextMax = Math.max(dp(112), bannerVisualLeft - bannerTextLeft - dp(8));
++    final boolean narrowHome = math.width() < dp(330);
++
++    drawFitText(c, "Bé học toán", bannerTextLeft, math.top + dp(27), dp(17.2f), darkMode ? WHITE : 0xFF17735C, true, Paint.Align.LEFT, bannerTextMax);
++    drawFitText(c, narrowHome ? "Cộng • trừ • dãy số" : "Cộng • trừ • dãy số • so sánh", bannerTextLeft, math.top + dp(48), dp(9.9f), darkMode ? 0xFFCAE9E0 : 0xFF4C7E71, false, Paint.Align.LEFT, bannerTextMax);
++    float mathIconS = Math.min(dp(16.5f), bannerVisualW / 5.5f);
++    drawMathBannerIcon(c, (bannerVisualLeft + bannerVisualRight) / 2f - dp(2), math.centerY(), mathIconS);
+     drawPill(c, math.right - dp(39), math.centerY() - dp(14), dp(28), dp(28), 0xFF26A987);
+-    drawText(c, "›", math.right - dp(25), math.centerY() + dp(7), dp(23), WHITE, true, Paint.Align.CENTER);
++    drawText(c, "›", bannerArrowX, math.centerY() + dp(7), dp(23), WHITE, true, Paint.Align.CENTER);
+ 
+-    // Đánh vần - lộ trình A -> BA -> CÁ.
++    // Đánh vần - tách lộ trình A → BA → CÁ khỏi phần mô tả.
+     RectF spell = homeCards[7];
+     spell.set(pad, spellTop, w - pad, spellBottom);
+     drawRound(c, spell, dp(22), darkMode ? 0xFF503A1A : 0xFFFFEDB8);
+     stroke.setStrokeWidth(dp(1.2f));
+     stroke.setColor(darkMode ? 0xFF987342 : 0xFFF4D37A);
+     c.drawRoundRect(spell, dp(22), dp(22), stroke);
+-    drawText(c, "Bé học đánh vần", spell.left + dp(18), spell.top + dp(25), dp(17.5f), darkMode ? WHITE : 0xFFC75A17, true, Paint.Align.LEFT);
+-    drawText(c, "Nghe âm • ghép tiếng • dấu thanh", spell.left + dp(18), spell.top + dp(45), dp(10.2f), darkMode ? 0xFFF4DEC3 : 0xFF98603A, false, Paint.Align.LEFT);
+-    drawSpellBannerIcon(c, spell.right - dp(115), spell.centerY(), dp(19));
++
++    final float spellVisualRight = spell.right - dp(48);
++    final float spellVisualW = Math.min(dp(108), spell.width() * 0.32f);
++    final float spellVisualLeft = spellVisualRight - spellVisualW;
++    final float spellTextLeft = spell.left + dp(18);
++    final float spellTextMax = Math.max(dp(112), spellVisualLeft - spellTextLeft - dp(8));
++    drawFitText(c, "Bé học đánh vần", spellTextLeft, spell.top + dp(27), dp(17.2f), darkMode ? WHITE : 0xFFC75A17, true, Paint.Align.LEFT, spellTextMax);
++    drawFitText(c, narrowHome ? "Nghe âm • ghép tiếng" : "Nghe âm • ghép tiếng • dấu thanh", spellTextLeft, spell.top + dp(48), dp(9.8f), darkMode ? 0xFFF4DEC3 : 0xFF98603A, false, Paint.Align.LEFT, spellTextMax);
++    float spellIconS = Math.min(dp(15.5f), spellVisualW / 6.0f);
++    drawSpellBannerIcon(c, (spellVisualLeft + spellVisualRight) / 2f - dp(1), spell.centerY(), spellIconS);
+     drawPill(c, spell.right - dp(39), spell.centerY() - dp(14), dp(28), dp(28), 0xFFE97737);
+     drawText(c, "›", spell.right - dp(25), spell.centerY() + dp(7), dp(23), WHITE, true, Paint.Align.CENTER);
+ 
