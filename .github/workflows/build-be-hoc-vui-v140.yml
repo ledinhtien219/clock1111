@@ -53,15 +53,13 @@ jobs:
           cd behocvui
           patch -p1 < /tmp/layout-v130.patch
 
-      - name: Apply 1.4.0 redesign and math
+      - name: Overlay 1.4.0 source files
         shell: bash
         run: |
-          cat .build/v140/xz*.b64 > /tmp/v140.patch.xz.b64
-          base64 -d /tmp/v140.patch.xz.b64 > /tmp/v140.patch.xz
-          xz -dc /tmp/v140.patch.xz > /tmp/v140.patch
-          cd behocvui
-          patch -p1 < /tmp/v140.patch
-          perl -0pi -e 's/\@Override\s*\n\s*\@Override/\@Override/g' app/src/main/java/com/behocvui/game/KidsGameView.java
+          cat .build/v140bundle/part*.b64 > /tmp/v140-files.tar.xz.b64
+          base64 -d /tmp/v140-files.tar.xz.b64 > /tmp/v140-files.tar.xz
+          tar -xJf /tmp/v140-files.tar.xz -C behocvui
+          perl -0pi -e 's/\@Override\s*\n\s*\@Override/\@Override/g' behocvui/app/src/main/java/com/behocvui/game/KidsGameView.java
 
       - name: Compile APK
         working-directory: behocvui
