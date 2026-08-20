@@ -58,6 +58,7 @@ jobs:
         run: |
           cat .build/v140bundle2/part*.b64 > /tmp/v140-files.tar.xz.b64
           base64 -d /tmp/v140-files.tar.xz.b64 > /tmp/v140-files.tar.xz
+          echo "2ca41b17570949828b6e0aee164c123659ad06afa3a33afb8c2cd725b8a85d3a  /tmp/v140-files.tar.xz" | sha256sum -c -
           tar -xJf /tmp/v140-files.tar.xz -C behocvui
           perl -0pi -e 's/\@Override\s*\n\s*\@Override/\@Override/g' behocvui/app/src/main/java/com/behocvui/game/KidsGameView.java
 
