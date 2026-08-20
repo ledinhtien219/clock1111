@@ -15,6 +15,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Fetch base app bundle
+        shell: bash
+        run: |
+          git fetch origin build-be-hoc-vui-1-1-1 --depth=1
+          git checkout FETCH_HEAD -- .build/behocvui .build/layout-v130
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
